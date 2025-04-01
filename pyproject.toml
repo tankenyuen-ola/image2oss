@@ -12,9 +12,8 @@ authors = [
 readme = "README.md"
 license = {text = "GNU General Public License v3"}
 classifiers = []
-dependencies = [
-
-]
+dependencies = []
+repository = "https://github.com/nxt5656/image2oss"
 
 [project.optional-dependencies]
 dev = [
@@ -29,12 +28,12 @@ dev = [
 [project.urls]
 bugs = "https://github.com/nxt5656/image2oss/issues"
 homepage = "https://github.com/nxt5656/image2oss"
-
+Repository = "https://github.com/nxt5656/image2oss"
 
 [tool.comfy]
 PublisherId = "nxt5656"
 DisplayName = "comfyui_image2oss"
-Icon = ""
+Icon = "http://zhiyi-opsdev.oss-cn-hangzhou.aliyuncs.com/tmp/demo.png"
 
 [tool.setuptools.package-data]
 "*" = ["*.*"]

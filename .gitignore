@@ -98,3 +98,4 @@ cookiecutter-pypackage-env/
 # vscode settings
 .history/
 *.code-workspace
+/node.zip
