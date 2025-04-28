@@ -22,8 +22,13 @@ Upload the image to Alibaba Cloud OSS
 ### access_key_secret
 阿里云ak对应的密钥
 
+### security_token
+STS安全令牌
+
 ### bucket_name
 阿里云 bucket 名称
+
+
 
 ### endpoint
 [oss的endpoing](https://help.aliyun.com/zh/oss/user-guide/regions-and-endpoints)

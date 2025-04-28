@@ -17,9 +17,10 @@ class OSSUploadNode:
         return {
             "required": {
                 "image": ("IMAGE",),
-                "filename": ("STRING",{"default":'["filename1"]'}),
+                "filename": ("STRING",{"default":'["tmp-comfyui/filename.jpeg"]'}),
                 "access_key_id": ("STRING", {"default": "access_key_id"}),
                 "access_key_secret": ("STRING", {"default": "access_key_secret"}),
+                "security_token": ("STRING", {"default": ""}),
                 "bucket_name": ("STRING", {"default": "bucket_name"}),
                 "endpoint": (OSS_ENDPOINT_LIST,{"default": "oss-cn-hangzhou.aliyuncs.com"}),
             }
@@ -28,7 +29,7 @@ class OSSUploadNode:
     # 校验参数是否正确
     @classmethod
     def VALIDATE_INPUTS(cls,image, filename, access_key_id, access_key_secret, bucket_name, endpoint):
-        print("参数校验:\t%s,%s,%s,%s,%s" % (filename, access_key_id, access_key_secret, bucket_name, endpoint))
+        #print("参数校验:\t%s,%s,%s,%s,%s" % (filename, access_key_id, access_key_secret, bucket_name, endpoint))
         if filename == "" or access_key_id == "" or access_key_secret == "" or bucket_name == "" or endpoint == "":
             return "参数不能为空"
         # 检查endpoing
@@ -39,8 +40,8 @@ class OSSUploadNode:
     FUNCTION = "upload_to_oss"
     CATEGORY = "API/oss"
     OUTPUT_NODE = True
-    def upload_to_oss(self, image, filename, access_key_id, access_key_secret, bucket_name, endpoint):
-        print("参数信息: \t%s,%s,%s,%s,%s\n" %( filename,access_key_id, access_key_secret, bucket_name, endpoint))
+    def upload_to_oss(self, image, filename, access_key_id, access_key_secret,security_token, bucket_name, endpoint):
+        #print("参数信息: \t%s,%s,%s,%s,%s\n" %( filename,access_key_id, access_key_secret, bucket_name, endpoint))
 
         # 先判断这里是不是字符串
         if not isinstance(filename, str):
@@ -59,13 +60,14 @@ class OSSUploadNode:
         n = 0
         for i in image:
             img = tensor_to_pil(i)
-            print("文件名称: [%s] \t文件类型: %s" % (filenameList[n],type(img)))
-            self.put_object(img,filenameList[n],access_key_id, access_key_secret, bucket_name, endpoint)
+            #print("文件名称: [%s] \t文件类型: %s" % (filenameList[n],type(img)))
+            self.put_object(img,filenameList[n],access_key_id, access_key_secret, security_token,bucket_name, endpoint)
             n = n + 1
 
         return ()
-    def put_object(self,file,filename,access_key_id, access_key_secret, bucket_name, endpoint):
-        auth = oss2.Auth(access_key_id, access_key_secret)
+    def put_object(self,file,filename,access_key_id, access_key_secret, security_token,bucket_name, endpoint):
+        #auth = oss2.Auth(access_key_id, access_key_secret)
+        auth = oss2.StsAuth(access_key_id,access_key_secret,security_token,auth_version = "v2")
         bucket = oss2.Bucket(auth, endpoint, bucket_name)
         image_bytes = BytesIO()
         file.save(image_bytes, format='JPEG')  # 保存为 JPEG 格式
