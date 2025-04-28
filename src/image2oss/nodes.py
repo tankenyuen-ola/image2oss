@@ -1,15 +1,63 @@
 import oss2
 from .util import tensor_to_pil,image_to_base64
-from PIL.PngImagePlugin import PngInfo
 from comfy.cli_args import args
 import ast
 from io import BytesIO
 
 
 OSS_ENDPOINT_LIST = [
+    # 中国内地
     "oss-cn-hangzhou.aliyuncs.com",
-    "oss-cn-hangzhou-internal.aliyuncs.com"
+    "oss-cn-shanghai.aliyuncs.com",
+    "oss-cn-qingdao.aliyuncs.com",
+    "oss-cn-beijing.aliyuncs.com",
+    "oss-cn-shenzhen.aliyuncs.com",
+    "oss-cn-heyuan.aliyuncs.com",
+    "oss-cn-zhangjiakou.aliyuncs.com",
+    "oss-cn-huhehaote.aliyuncs.com",
+    "oss-cn-wulanchabu.aliyuncs.com",
+    "oss-cn-chengdu.aliyuncs.com",
+    "oss-cn-hangzhou-internal.aliyuncs.com",
+    "oss-cn-shanghai-internal.aliyuncs.com",
+    "oss-cn-qingdao-internal.aliyuncs.com",
+    "oss-cn-beijing-internal.aliyuncs.com",
+    "oss-cn-shenzhen-internal.aliyuncs.com",
+    "oss-cn-heyuan-internal.aliyuncs.com",
+    "oss-cn-zhangjiakou-internal.aliyuncs.com",
+    "oss-cn-huhehaote-internal.aliyuncs.com",
+    "oss-cn-wulanchabu-internal.aliyuncs.com",
+    "oss-cn-chengdu-internal.aliyuncs.com",
+    # 中国香港
+    "oss-cn-hongkong.aliyuncs.com",
+    "oss-cn-hongkong-internal.aliyuncs.com",
+    # 美国
+    "oss-us-west-1.aliyuncs.com",
+    "oss-us-east-1.aliyuncs.com",
+    "oss-us-west-1-internal.aliyuncs.com",
+    "oss-us-east-1-internal.aliyuncs.com",
+    # 亚太
+    "oss-ap-southeast-1.aliyuncs.com",
+    "oss-ap-southeast-2.aliyuncs.com",
+    "oss-ap-southeast-3.aliyuncs.com",
+    "oss-ap-southeast-5.aliyuncs.com",
+    "oss-ap-northeast-1.aliyuncs.com",
+    "oss-ap-south-1.aliyuncs.com",
+    "oss-ap-southeast-1-internal.aliyuncs.com",
+    "oss-ap-southeast-2-internal.aliyuncs.com",
+    "oss-ap-southeast-3-internal.aliyuncs.com",
+    "oss-ap-southeast-5-internal.aliyuncs.com",
+    "oss-ap-northeast-1-internal.aliyuncs.com",
+    "oss-ap-south-1-internal.aliyuncs.com",
+    # 欧洲
+    "oss-eu-central-1.aliyuncs.com",
+    "oss-eu-west-1.aliyuncs.com",
+    "oss-eu-central-1-internal.aliyuncs.com",
+    "oss-eu-west-1-internal.aliyuncs.com",
+    # 中东
+    "oss-me-east-1.aliyuncs.com",
+    "oss-me-east-1-internal.aliyuncs.com"
 ]
+
 
 class OSSUploadNode:
     @classmethod
@@ -78,13 +126,6 @@ class OSSUploadNode:
         except oss2.exceptions.OssError as e:
             raise ValueError(f'上传失败，错误信息: {e}')
 
-
-
-
-
-
-            # A dictionary that contains all nodes you want to export with their names
-# NOTE: names should be globally unique
 NODE_CLASS_MAPPINGS = {
     "OSSUploadNode": OSSUploadNode
 }

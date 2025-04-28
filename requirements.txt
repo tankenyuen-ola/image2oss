@@ -1,5 +1,4 @@
 oss2
 numpy
 requests
-torch
 pillow
