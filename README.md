@@ -23,7 +23,27 @@ Upload the image to Alibaba Cloud OSS
 阿里云ak对应的密钥
 
 ### security_token
-STS安全令牌
+阿里云STS安全令牌
+
+### sts_service_url
+获取阿里云ak信息的地址
+返回数据格式为:
+```json
+{
+  "requestId": "非必要",
+  "success": true,
+  "errorMessage": "",
+  "data": {
+    "accessKeyId": "阿里云AK",
+    "accessKeySecret": "阿里云SK",
+    "securityToken": "阿里云STS安全令牌",
+    "expiration": "2025-04-29T14:37:56Z",
+    "arn": "非必要",
+    "assumedRoleId": "非必要"
+  }
+}
+```
+
 
 ### bucket_name
 阿里云 bucket 名称
