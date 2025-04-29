@@ -1,9 +1,10 @@
 import oss2
-from .util import tensor_to_pil,image_to_base64
+from .util import tensor_to_pil,read_image_from_url
 from comfy.cli_args import args
 import ast
 from io import BytesIO
 import requests
+import io
 
 
 
@@ -207,15 +208,28 @@ class OSSUploadNodeBySTSServiceUrl:
         except oss2.exceptions.OssError as e:
             raise ValueError(f'上传失败，错误信息: {e}')
 
-
-
+class LoadImageFromURL:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "image_url": ("STRING",{"default":"https://picsum.photos/200/300"}),
+            }
+        }
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "load_image"
+    CATEGORY = "API/oss"
+    def load_image(self, image_url):
+        return read_image_from_url(image_url)
 NODE_CLASS_MAPPINGS = {
     "OSSUploadNode": OSSUploadNode,
-    "OSSUploadNodeBySTSServiceUrl": OSSUploadNodeBySTSServiceUrl
+    "OSSUploadNodeBySTSServiceUrl": OSSUploadNodeBySTSServiceUrl,
+    "LoadImageFromURL": LoadImageFromURL
 }
 
 # A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
     "OSSUploadNode": "保存图片到oss上",
-    "OSSUploadNodeBySTSServiceUrl": "保存图片到oss上(使用服务获取ak信息)"
+    "OSSUploadNodeBySTSServiceUrl": "保存图片到oss上(使用服务获取ak信息)",
+    "LoadImageFromURL":"从url加载图片"
 }

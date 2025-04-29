@@ -44,11 +44,7 @@ def image_to_base64(pli_image, pnginfo=None):
 
     # 将图像保存到BytesIO对象中，格式为PNG
     pli_image.save(image_data, format='PNG', pnginfo=pnginfo)
-
-    # 将BytesIO对象的内容转换为字节串
     image_data_bytes = image_data.getvalue()
-
-    # 将图像数据编码为Base64字符串
     encoded_image = "data:image/png;base64," + base64.b64encode(image_data_bytes).decode('utf-8')
 
     return encoded_image
@@ -56,25 +52,34 @@ def image_to_base64(pli_image, pnginfo=None):
 
 def read_image_from_url(image_url):
     try:
-        # Create a new session and disable keep-alive if desired
-        session = requests.Session()
-        session.keep_alive = False
+        # 1. 获取图片数据 (推荐开启 verify=True)
+        response = requests.get(image_url, stream=True, timeout=15) # 增加超时时间
+        response.raise_for_status() # 检查 HTTP 错误
+        image_bytes = response.content
 
-        # Get the image content from the URL
-        response = session.get(image_url, stream=True, verify=False)
-        response.raise_for_status()  # Ensure we got a valid response
+        # 2. 打开图片
+        pil_image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
 
-        # Convert the response content into a BytesIO object
-        image_bytes = io.BytesIO(response.content)
+        # 3. 转换为 NumPy 数组并归一化
+        numpy_image = np.array(pil_image).astype(np.float32) / 255.0
 
-        # Open the image using PIL and force loading the image data
-        img = Image.open(image_bytes)
-        img.load()  # Ensure the image is fully loaded
+        # 4. 转换为 PyTorch 张量
+        tensor_image = torch.from_numpy(numpy_image) # Shape: (H, W, C)
 
-        return img
+        # 5. 添加 Batch 维度
+        batch_tensor = tensor_image.unsqueeze(0) # Shape: (1, H, W, C)
+
+        # 6. 返回符合 ComfyUI 格式的张量
+        return (batch_tensor,)
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching image from URL: {e}")
+        # 可以返回一个空的或者默认的图像张量，或者抛出异常
+        # 返回空张量示例: return (torch.zeros((1, 64, 64, 3)),)
+        raise Exception(f"Failed to load image from URL: {image_url}. Error: {e}") from e
     except Exception as e:
-        print(f"Error reading image from URL {image_url}: {e}")
-        return None
+        print(f"Error processing image: {e}")
+        raise Exception(f"Failed to process image from URL: {image_url}. Error: {e}") from e
 
 
 def hex_to_rgba(hex_color):
@@ -111,8 +116,6 @@ class AnyType(str):
 
 
 any_type = AnyType("*")
-
-
 global_config = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../global.json")
 last_read_time = None
 
@@ -137,15 +140,6 @@ def get_global_config(key):
 
 
 def check_directory(check_dir):
-    """
-    如果不允许创建目录，检查目录是否存在，是不是绝对路经。
-    如果允许创建目录，尝试创建目录，并返回规范化路径。
-    Args:
-        check_dir:
-
-    Returns: 规范化后的路径
-
-    """
     allow_create_dir_when_save = get_global_config('allow_create_dir_when_save')
     check_dir = os.path.normpath(check_dir)
     if not allow_create_dir_when_save and (not os.path.isdir(check_dir) or not os.path.isabs(check_dir)):
