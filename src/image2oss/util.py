@@ -9,7 +9,61 @@ import requests
 import torch
 from PIL import Image
 from io import BytesIO
-# Tensor to PIL
+OSS_ENDPOINT_LIST = [
+    # 中国内地
+    "oss-cn-hangzhou.aliyuncs.com",
+    "oss-cn-shanghai.aliyuncs.com",
+    "oss-cn-qingdao.aliyuncs.com",
+    "oss-cn-beijing.aliyuncs.com",
+    "oss-cn-shenzhen.aliyuncs.com",
+    "oss-cn-heyuan.aliyuncs.com",
+    "oss-cn-zhangjiakou.aliyuncs.com",
+    "oss-cn-huhehaote.aliyuncs.com",
+    "oss-cn-wulanchabu.aliyuncs.com",
+    "oss-cn-chengdu.aliyuncs.com",
+    "oss-cn-hangzhou-internal.aliyuncs.com",
+    "oss-cn-shanghai-internal.aliyuncs.com",
+    "oss-cn-qingdao-internal.aliyuncs.com",
+    "oss-cn-beijing-internal.aliyuncs.com",
+    "oss-cn-shenzhen-internal.aliyuncs.com",
+    "oss-cn-heyuan-internal.aliyuncs.com",
+    "oss-cn-zhangjiakou-internal.aliyuncs.com",
+    "oss-cn-huhehaote-internal.aliyuncs.com",
+    "oss-cn-wulanchabu-internal.aliyuncs.com",
+    "oss-cn-chengdu-internal.aliyuncs.com",
+    # 中国香港
+    "oss-cn-hongkong.aliyuncs.com",
+    "oss-cn-hongkong-internal.aliyuncs.com",
+    # 美国
+    "oss-us-west-1.aliyuncs.com",
+    "oss-us-east-1.aliyuncs.com",
+    "oss-us-west-1-internal.aliyuncs.com",
+    "oss-us-east-1-internal.aliyuncs.com",
+    # 亚太
+    "oss-ap-southeast-1.aliyuncs.com",
+    "oss-ap-southeast-2.aliyuncs.com",
+    "oss-ap-southeast-3.aliyuncs.com",
+    "oss-ap-southeast-5.aliyuncs.com",
+    "oss-ap-northeast-1.aliyuncs.com",
+    "oss-ap-south-1.aliyuncs.com",
+    "oss-ap-southeast-1-internal.aliyuncs.com",
+    "oss-ap-southeast-2-internal.aliyuncs.com",
+    "oss-ap-southeast-3-internal.aliyuncs.com",
+    "oss-ap-southeast-5-internal.aliyuncs.com",
+    "oss-ap-northeast-1-internal.aliyuncs.com",
+    "oss-ap-south-1-internal.aliyuncs.com",
+    # 欧洲
+    "oss-eu-central-1.aliyuncs.com",
+    "oss-eu-west-1.aliyuncs.com",
+    "oss-eu-central-1-internal.aliyuncs.com",
+    "oss-eu-west-1-internal.aliyuncs.com",
+    # 中东
+    "oss-me-east-1.aliyuncs.com",
+    "oss-me-east-1-internal.aliyuncs.com"
+]
+
+
+# 将一个图像张量（Tensor）转换成 PIL (Pillow) 图像对象
 def tensor_to_pil(image):
     return Image.fromarray(np.clip(255. * image.cpu().numpy().squeeze(), 0, 255).astype(np.uint8))
 
@@ -50,7 +104,7 @@ def image_to_base64(pli_image, pnginfo=None):
 
     return encoded_image
 
-
+# 从url中获取图片
 def read_image_from_url(image_url):
     try:
         # 1. 获取图片数据 (推荐开启 verify=True)
@@ -150,6 +204,7 @@ def check_directory(check_dir):
         os.makedirs(check_dir, exist_ok=True)
     return check_dir
 
+# 上传图片到oss中
 def put_object(file,filename,access_key_id, access_key_secret, security_token,bucket_name, endpoint):
     auth = oss2.StsAuth(access_key_id,access_key_secret,security_token,auth_version = "v2")
     bucket = oss2.Bucket(auth, endpoint, bucket_name)
@@ -161,3 +216,55 @@ def put_object(file,filename,access_key_id, access_key_secret, security_token,bu
         print(f'图片成功上传到 OSS，文件名为: {filename}')
     except oss2.exceptions.OssError as e:
         raise ValueError(f'上传失败，错误信息: {e}')
+# 从oss获取图片
+def get_object(object_key, access_key_id, access_key_secret, security_token, bucket_name, endpoint):
+    try:
+        auth = oss2.StsAuth(access_key_id,access_key_secret,security_token,auth_version = "v2")
+        bucket = oss2.Bucket(auth, endpoint, bucket_name)
+        object_stream = bucket.get_object(object_key)
+        img_data = object_stream.read()
+        if not img_data:
+            raise ValueError(f"Failed to read data for object: {object_key}")
+        image = Image.open(io.BytesIO(img_data))
+        image = image.convert("RGB")
+        image_np = np.array(image).astype(np.float32)
+        image_np /= 255.0
+        image_tensor = torch.from_numpy(image_np)
+        image_tensor = image_tensor.unsqueeze(0)
+        print(f"Successfully loaded image from OSS. Tensor shape: {image_tensor.shape}")
+        return (image_tensor,)
+    except oss2.exceptions.NoSuchKey:
+        print(f"Error: Object '{object_key}' not found in bucket '{bucket_name}'.")
+        # 可以选择返回一个空图像或默认图像，或者直接抛出异常
+        # 这里我们重新抛出异常，让 ComfyUI 显示错误
+        raise oss2.exceptions.NoSuchKey(f"Object '{object_key}' not found in bucket '{bucket_name}'.")
+    except Exception as e:
+        print(f"An error occurred while loading image from OSS: {e}")
+        # 重新抛出异常，以便在 ComfyUI 中看到错误信息
+        raise e
+    finally:
+        # 确保 response 被关闭 (oss2 的 get_object 返回的 stream 在 read() 后通常会自动处理，但显式关闭更安全)
+        if 'object_stream' in locals() and hasattr(object_stream, 'resp') and object_stream.resp:
+            # oss2 < 2.17.0: object_stream.resp.release_conn()
+            # oss2 >= 2.17.0: object_stream.close()
+            # 简单起见，如果 read() 成功，连接通常已关闭。如果读取失败或部分读取，则需要手动关闭。
+            # Pillow 的 Image.open(io.BytesIO(img_data)) 处理的是内存数据，不涉及原始连接。
+            # 如果直接用 Image.open(object_stream.resp)，则Pillow会负责读取和关闭。
+            # 鉴于我们先 read() 了全部数据，这里通常不需要额外关闭。
+            pass
+
+# 获取阿里云ak信息
+def get_aliyun_ak(sts_service_url):
+    try:
+        response = requests.get(sts_service_url)
+        response.raise_for_status()
+        data = response.json()
+        if not data["success"]:
+            raise ValueError(f"获取ak失败: {data}")
+        return data
+    except requests.exceptions.HTTPError as http_err:
+        raise ValueError(f"HTTP 错误发生: {http_err}")
+    except requests.exceptions.RequestException as req_err:
+        raise ValueError(f"请求错误发生: {req_err}")
+    except ValueError as value_err:
+        raise ValueError(f"JSON 解析错误: {value_err}")

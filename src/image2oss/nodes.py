@@ -1,62 +1,9 @@
-from .util import tensor_to_pil,read_image_from_url,put_object
+from .util import tensor_to_pil,read_image_from_url,put_object,get_aliyun_ak,OSS_ENDPOINT_LIST,get_object
 from comfy.cli_args import args
 import ast
-import requests
 
 
 
-OSS_ENDPOINT_LIST = [
-    # 中国内地
-    "oss-cn-hangzhou.aliyuncs.com",
-    "oss-cn-shanghai.aliyuncs.com",
-    "oss-cn-qingdao.aliyuncs.com",
-    "oss-cn-beijing.aliyuncs.com",
-    "oss-cn-shenzhen.aliyuncs.com",
-    "oss-cn-heyuan.aliyuncs.com",
-    "oss-cn-zhangjiakou.aliyuncs.com",
-    "oss-cn-huhehaote.aliyuncs.com",
-    "oss-cn-wulanchabu.aliyuncs.com",
-    "oss-cn-chengdu.aliyuncs.com",
-    "oss-cn-hangzhou-internal.aliyuncs.com",
-    "oss-cn-shanghai-internal.aliyuncs.com",
-    "oss-cn-qingdao-internal.aliyuncs.com",
-    "oss-cn-beijing-internal.aliyuncs.com",
-    "oss-cn-shenzhen-internal.aliyuncs.com",
-    "oss-cn-heyuan-internal.aliyuncs.com",
-    "oss-cn-zhangjiakou-internal.aliyuncs.com",
-    "oss-cn-huhehaote-internal.aliyuncs.com",
-    "oss-cn-wulanchabu-internal.aliyuncs.com",
-    "oss-cn-chengdu-internal.aliyuncs.com",
-    # 中国香港
-    "oss-cn-hongkong.aliyuncs.com",
-    "oss-cn-hongkong-internal.aliyuncs.com",
-    # 美国
-    "oss-us-west-1.aliyuncs.com",
-    "oss-us-east-1.aliyuncs.com",
-    "oss-us-west-1-internal.aliyuncs.com",
-    "oss-us-east-1-internal.aliyuncs.com",
-    # 亚太
-    "oss-ap-southeast-1.aliyuncs.com",
-    "oss-ap-southeast-2.aliyuncs.com",
-    "oss-ap-southeast-3.aliyuncs.com",
-    "oss-ap-southeast-5.aliyuncs.com",
-    "oss-ap-northeast-1.aliyuncs.com",
-    "oss-ap-south-1.aliyuncs.com",
-    "oss-ap-southeast-1-internal.aliyuncs.com",
-    "oss-ap-southeast-2-internal.aliyuncs.com",
-    "oss-ap-southeast-3-internal.aliyuncs.com",
-    "oss-ap-southeast-5-internal.aliyuncs.com",
-    "oss-ap-northeast-1-internal.aliyuncs.com",
-    "oss-ap-south-1-internal.aliyuncs.com",
-    # 欧洲
-    "oss-eu-central-1.aliyuncs.com",
-    "oss-eu-west-1.aliyuncs.com",
-    "oss-eu-central-1-internal.aliyuncs.com",
-    "oss-eu-west-1-internal.aliyuncs.com",
-    # 中东
-    "oss-me-east-1.aliyuncs.com",
-    "oss-me-east-1-internal.aliyuncs.com"
-]
 
 
 class OSSUploadNode:
@@ -159,22 +106,11 @@ class OSSUploadNodeBySTSServiceUrl:
         print("共有图片[%s]张,filename[%s]个\n" % (len(image), len(filenameList) ))
         if len(image)!= len(filenameList) :
             raise ValueError("生成图片数量与给定的文件名数量不对应")
+        data = get_aliyun_ak(sts_service_url)
+        access_key_id = data["data"]["accessKeyId"]
+        access_key_secret = data["data"]["accessKeySecret"]
+        security_token = data["data"]["securityToken"]
 
-        try:
-            response = requests.get(sts_service_url)
-            response.raise_for_status()
-            data = response.json()
-            if not data["success"]:
-                raise ValueError(f"获取ak失败: {data}")
-            access_key_id = data["data"]["accessKeyId"]
-            access_key_secret = data["data"]["accessKeySecret"]
-            security_token = data["data"]["securityToken"]
-        except requests.exceptions.HTTPError as http_err:
-            raise ValueError(f"HTTP 错误发生: {http_err}")
-        except requests.exceptions.RequestException as req_err:
-            raise ValueError(f"请求错误发生: {req_err}")
-        except ValueError as value_err:
-            raise ValueError(f"JSON 解析错误: {value_err}")
         n = 0
         for i in image:
             img = tensor_to_pil(i)
@@ -197,15 +133,57 @@ class LoadImageFromURL:
     CATEGORY = "API/oss"
     def load_image(self, image_url):
         return read_image_from_url(image_url)
+class LoadImageFromOss:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "filename": ("STRING",{"default":"tmp/screenshot.png"}),
+                "access_key_id": ("STRING", {"default": "access_key_id"}),
+                "access_key_secret": ("STRING", {"default": "access_key_secret"}),
+                "security_token": ("STRING", {"default": ""}),
+                "bucket_name": ("STRING", {"default": "bucket_name"}),
+                "endpoint": (OSS_ENDPOINT_LIST,{"default": "oss-cn-hangzhou.aliyuncs.com"}),
+            }
+        }
+    RETURN_TYPES = ("IMAGE",)
+    CATEGORY = "API/oss"
+    FUNCTION = "load_image"
+    def load_image(self, filename, access_key_id, access_key_secret, security_token, bucket_name, endpoint):
+        return get_object(filename, access_key_id, access_key_secret, security_token, bucket_name, endpoint)
+class LoadImageFromOssBySTSServiceUrl:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "filename": ("STRING",{"default":"tmp-comfyui/filename.jpeg"}),
+                "sts_service_url": ("STRING", {"default": "https://demo.cn/sts_service"}),
+                "bucket_name": ("STRING", {"default": "bucket_name"}),
+                "endpoint": (OSS_ENDPOINT_LIST,{"default": "oss-cn-hangzhou.aliyuncs.com"}),
+            }
+        }
+    RETURN_TYPES = ("IMAGE",)
+    CATEGORY = "API/oss"
+    FUNCTION = "load_image"
+    def load_image(self, filename, sts_service_url,  bucket_name, endpoint):
+        data = get_aliyun_ak(sts_service_url)
+        access_key_id = data["data"]["accessKeyId"]
+        access_key_secret = data["data"]["accessKeySecret"]
+        security_token = data["data"]["securityToken"]
+        return get_object(filename, access_key_id, access_key_secret, security_token, bucket_name, endpoint)
+
 NODE_CLASS_MAPPINGS = {
     "OSSUploadNode": OSSUploadNode,
     "OSSUploadNodeBySTSServiceUrl": OSSUploadNodeBySTSServiceUrl,
-    "LoadImageFromURL": LoadImageFromURL
+    "LoadImageFromURL": LoadImageFromURL,
+    "LoadImageFromOss":LoadImageFromOss,
+    "LoadImageFromOssBySTSServiceUrl":LoadImageFromOssBySTSServiceUrl
 }
 
-# A dictionary that contains the friendly/humanly readable titles for the nodes
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "OSSUploadNode": "保存图片到oss上",
-    "OSSUploadNodeBySTSServiceUrl": "保存图片到oss上(使用服务获取ak信息)",
-    "LoadImageFromURL":"从url加载图片"
+    "OSSUploadNode": "保存图片到oss",
+    "OSSUploadNodeBySTSServiceUrl": "保存图片到oss(使用服务获取ak信息)",
+    "LoadImageFromURL":"从url加载图片",
+    "LoadImageFromOss":"从oss加载图片",
+    "LoadImageFromOssBySTSServiceUrl":"从oss加载图片(使用服务获取ak信息)"
 }
