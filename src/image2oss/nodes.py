@@ -2,10 +2,6 @@ from .util import tensor_to_pil,read_image_from_url,put_object,get_aliyun_ak,OSS
 from comfy.cli_args import args
 import ast
 
-
-
-
-
 class OSSUploadNode:
     @classmethod
     def INPUT_TYPES(cls):
