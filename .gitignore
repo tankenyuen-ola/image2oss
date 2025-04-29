@@ -99,3 +99,5 @@ cookiecutter-pypackage-env/
 .history/
 *.code-workspace
 /node.zip
+
+/dev/

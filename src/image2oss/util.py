@@ -3,11 +3,12 @@ import io
 import json
 import os
 import time
-
+import oss2
 import numpy as np
 import requests
 import torch
 from PIL import Image
+from io import BytesIO
 # Tensor to PIL
 def tensor_to_pil(image):
     return Image.fromarray(np.clip(255. * image.cpu().numpy().squeeze(), 0, 255).astype(np.uint8))
@@ -148,3 +149,15 @@ def check_directory(check_dir):
     if not os.path.isdir(check_dir):
         os.makedirs(check_dir, exist_ok=True)
     return check_dir
+
+def put_object(file,filename,access_key_id, access_key_secret, security_token,bucket_name, endpoint):
+    auth = oss2.StsAuth(access_key_id,access_key_secret,security_token,auth_version = "v2")
+    bucket = oss2.Bucket(auth, endpoint, bucket_name)
+    image_bytes = BytesIO()
+    file.save(image_bytes, format='JPEG')  # 保存为 JPEG 格式
+    image_bytes.seek(0)  # 将流指针回到开头
+    try:
+        bucket.put_object(filename, image_bytes)
+        print(f'图片成功上传到 OSS，文件名为: {filename}')
+    except oss2.exceptions.OssError as e:
+        raise ValueError(f'上传失败，错误信息: {e}')

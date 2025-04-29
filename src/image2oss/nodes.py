@@ -1,10 +1,7 @@
-import oss2
-from .util import tensor_to_pil,read_image_from_url
+from .util import tensor_to_pil,read_image_from_url,put_object
 from comfy.cli_args import args
 import ast
-from io import BytesIO
 import requests
-import io
 
 
 
@@ -112,22 +109,11 @@ class OSSUploadNode:
         for i in image:
             img = tensor_to_pil(i)
             #print("文件名称: [%s] \t文件类型: %s" % (filenameList[n],type(img)))
-            self.put_object(img,filenameList[n],access_key_id, access_key_secret, security_token,bucket_name, endpoint)
+            put_object(img,filenameList[n],access_key_id, access_key_secret, security_token,bucket_name, endpoint)
             n = n + 1
 
         return ()
-    def put_object(self,file,filename,access_key_id, access_key_secret, security_token,bucket_name, endpoint):
-        #auth = oss2.Auth(access_key_id, access_key_secret)
-        auth = oss2.StsAuth(access_key_id,access_key_secret,security_token,auth_version = "v2")
-        bucket = oss2.Bucket(auth, endpoint, bucket_name)
-        image_bytes = BytesIO()
-        file.save(image_bytes, format='JPEG')  # 保存为 JPEG 格式
-        image_bytes.seek(0)  # 将流指针回到开头
-        try:
-            bucket.put_object(filename, image_bytes)
-            print(f'图片成功上传到 OSS，文件名为: {filename}')
-        except oss2.exceptions.OssError as e:
-            raise ValueError(f'上传失败，错误信息: {e}')
+
 
 
 class OSSUploadNodeBySTSServiceUrl:
@@ -192,21 +178,11 @@ class OSSUploadNodeBySTSServiceUrl:
         n = 0
         for i in image:
             img = tensor_to_pil(i)
-            self.put_object(img,filenameList[n],access_key_id, access_key_secret, security_token,bucket_name, endpoint)
+            put_object(img,filenameList[n],access_key_id, access_key_secret, security_token,bucket_name, endpoint)
             n = n + 1
 
         return ()
-    def put_object(self,file,filename,access_key_id, access_key_secret, security_token,bucket_name, endpoint):
-        auth = oss2.StsAuth(access_key_id,access_key_secret,security_token,auth_version = "v2")
-        bucket = oss2.Bucket(auth, endpoint, bucket_name)
-        image_bytes = BytesIO()
-        file.save(image_bytes, format='JPEG')  # 保存为 JPEG 格式
-        image_bytes.seek(0)  # 将流指针回到开头
-        try:
-            bucket.put_object(filename, image_bytes)
-            print(f'图片成功上传到 OSS，文件名为: {filename}')
-        except oss2.exceptions.OssError as e:
-            raise ValueError(f'上传失败，错误信息: {e}')
+
 
 class LoadImageFromURL:
     @classmethod
