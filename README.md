@@ -1,8 +1,11 @@
 # comfyui_image2oss
 
-Upload the image to Alibaba Cloud OSS
-
-将图片上传到阿里云OSS上
+## 功能
+### 获取图片
+1. 从阿里云oss上获取图片(直接ak方式 & 调用第三方服务获取ak信息)
+2. 从url获取图片
+### 保存图片
+保存图片到阿里云oss上(直接ak方式 & 调用第三方服务获取ak信息)
 
 
 ## Quickstart
