@@ -2,6 +2,7 @@ from .util import tensor_to_pil,read_image_from_url,put_object,get_aliyun_ak,OSS
 from comfy.cli_args import args
 import ast
 
+# 保存图片到oss,通过阿里云sdk,使用ak/sk
 class OSSUploadNode:
     @classmethod
     def INPUT_TYPES(cls):
@@ -57,8 +58,7 @@ class OSSUploadNode:
 
         return ()
 
-
-
+# 保存图片到oss,通过阿里云sdk,使用自建sts服务
 class OSSUploadNodeBySTSServiceUrl:
     @classmethod
     def INPUT_TYPES(cls):
@@ -115,7 +115,7 @@ class OSSUploadNodeBySTSServiceUrl:
 
         return ()
 
-
+# 加载图片,从图片url链接
 class LoadImageFromURL:
     @classmethod
     def INPUT_TYPES(cls):
@@ -129,6 +129,8 @@ class LoadImageFromURL:
     CATEGORY = "API/oss"
     def load_image(self, image_url):
         return read_image_from_url(image_url)
+
+# 加载图片,通过阿里云sdk,使用自建sts服务
 class LoadImageFromOss:
     @classmethod
     def INPUT_TYPES(cls):
@@ -147,6 +149,8 @@ class LoadImageFromOss:
     FUNCTION = "load_image"
     def load_image(self, filename, access_key_id, access_key_secret, security_token, bucket_name, endpoint):
         return get_object(filename, access_key_id, access_key_secret, security_token, bucket_name, endpoint)
+
+# 加载图片,,通过阿里云sdk,使用自建sts服务
 class LoadImageFromOssBySTSServiceUrl:
     @classmethod
     def INPUT_TYPES(cls):
