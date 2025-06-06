@@ -2,10 +2,14 @@
 
 ## 功能
 ### 获取图片
-1. 从阿里云oss上获取图片(直接ak方式 & 调用第三方服务获取ak信息)
-2. 从url获取图片
-### 保存图片
-保存图片到阿里云oss上,支持同时保存多张图片(直接ak方式 & 调用第三方服务获取ak信息)
+1. image2oss  保存图片到阿里云oss上,使用自建服务阿里云AK&SK&Token
+2. image2oss-sts-service 保存图片到阿里云oss上,使用自建服务获取阿里云AK&SK&Token
+3. image2oss-tag 保存图片到阿里云oss上,并添加"Ai生成"的水印,使用阿里云AK&SK(支持ststoken)
+4. image2oss-tag-sts-service 保存图片到阿里云oss上,并添加"Ai生成"的水印,使用自建服务阿里云AK&SK&Token
+5. oss2image 从阿里云oss上获取图片,使用阿里云AK&SK(支持ststoken)
+6. oss2image-sts-service 从阿里云oss上获取图片,使用自建服务阿里云AK&SK&Token
+7. url2image 从url获取图片
+
 
 
 ## Quickstart
@@ -48,11 +52,13 @@
 }
 ```
 
-
 ### bucket_name
 阿里云 bucket 名称
 
-
-
 ### endpoint
 [oss的endpoing](https://help.aliyun.com/zh/oss/user-guide/regions-and-endpoints)
+
+## AI标记
+中国法规要求,ai生成内容必须添加ai相关标记,标准如下:
+
+[网络安全技术 人工智能生成合成内容标识方法](https://www.tc260.org.cn/upload/2025-03-15/1742009439794081593.pdf)

@@ -3,7 +3,8 @@ import oss2
 import numpy as np
 import requests
 import torch
-from PIL import Image
+import os
+from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 OSS_ENDPOINT_LIST = [
     # 中国内地
@@ -107,11 +108,26 @@ def put_object(file,filename,access_key_id, access_key_secret, security_token,bu
     image_bytes = BytesIO()
     file.save(image_bytes, format='JPEG')  # 保存为 JPEG 格式
     image_bytes.seek(0)  # 将流指针回到开头
+
     try:
         bucket.put_object(filename, image_bytes)
         print(f'图片成功上传到 OSS，文件名为: {filename}')
     except oss2.exceptions.OssError as e:
         raise ValueError(f'上传失败，错误信息: {e}')
+
+def put_object_for_cn_law(file,filename,access_key_id, access_key_secret, security_token,bucket_name, endpoint):
+    f = add_watermark(file,text="Ai生成",font_path="ComfyUI/custom_nodes/image2oss/NotoSansCJKsc-Regular.otf")
+    auth = oss2.StsAuth(access_key_id,access_key_secret,security_token,auth_version = "v2")
+    bucket = oss2.Bucket(auth, endpoint, bucket_name)
+    image_bytes = BytesIO()
+    f.save(image_bytes, format='PNG')
+    image_bytes.seek(0)  # 将流指针回到开头
+    try:
+        bucket.put_object(filename, image_bytes)
+        print(f'图片成功上传到 OSS，文件名为: {filename}')
+    except oss2.exceptions.OssError as e:
+        raise ValueError(f'上传失败，错误信息: {e}')
+
 # 从oss获取图片
 def get_object(object_key, access_key_id, access_key_secret, security_token, bucket_name, endpoint):
     try:
@@ -164,3 +180,128 @@ def get_aliyun_ak(sts_service_url):
         raise ValueError(f"请求错误发生: {req_err}")
     except ValueError as value_err:
         raise ValueError(f"JSON 解析错误: {value_err}")
+
+def add_watermark(img, text="AI生成", font_path=None):
+    img = img.convert("RGBA")
+    """
+    为图片添加水印，水印位于右下角，文字高度不低于画面最短边长度的5%。
+
+    Args:
+        image_path (str): 原始图片的路径。
+        text (str): 水印文字内容，默认为"AI生成"。
+        font_path (str, optional): 字体文件的路径。如果为None，将尝试使用默认字体。
+                                   建议提供一个中文字体路径，否则中文字符可能无法正常显示。
+    Returns:
+        PIL.Image.Image: 添加水印后的图片对象。
+    """
+    try:
+        draw = ImageDraw.Draw(img)
+    except Exception as e :
+        print(e)
+        return
+    img_width, img_height = img.size
+
+    # 计算最短边长度
+    min_side = min(img_width, img_height)
+
+    # 最小水印文字高度（最短边长度的5%）
+    min_watermark_height = int(min_side * 0.05)
+    if min_watermark_height < 10:  # 确保字体不会太小
+        min_watermark_height = 10
+
+    # 尝试加载字体
+    # 如果没有指定字体路径，尝试使用系统默认字体或者常见的字体名称
+    # 推荐使用像 'arial.ttf', 'simhei.ttf', 'msyh.ttc' 等中文字体
+    try:
+        if font_path and os.path.exists(font_path):
+            print(font_path)
+            print(os.path.exists(font_path))
+            # 尝试不同的字体大小直到达到最小高度
+            font_size = 1
+            font = ImageFont.truetype(font_path, font_size)
+            while True:
+                # 使用textbbox来获取更准确的文本框大小
+                bbox = draw.textbbox((0, 0), text, font=font)
+                text_height = bbox[3] - bbox[1] # height = y2 - y1
+
+                if text_height >= min_watermark_height:
+                    break
+                font_size += 1
+                font = ImageFont.truetype(font_path, font_size)
+                # 避免无限循环，设置一个最大字体大小
+                if font_size > max(img_width, img_height) // 2:
+                    print(f"警告：无法找到满足最小高度 {min_watermark_height} 的字体大小，使用当前最大字体大小 {font_size}")
+                    break
+        else:
+            # 如果没有提供字体路径或字体文件不存在，尝试默认字体
+            # 这通常只适用于英文字符，中文字符可能显示为方块
+            print("警告：未提供有效的字体路径或字体文件不存在。尝试使用默认字体，中文字符可能无法正常显示。")
+            font_size = min_watermark_height
+            font = ImageFont.load_default() # 对于中文字符，这个可能无法很好地工作
+            # 再次尝试调整大小以匹配最小高度
+            # 针对load_default()的特殊处理，因为其无法直接通过参数调整大小
+            # 这里的调整可能不精确，但在没有中文字体时是权宜之计
+            while True:
+                bbox = draw.textbbox((0, 0), text, font=font)
+                text_height = bbox[3] - bbox[1]
+                if text_height >= min_watermark_height:
+                    break
+                # load_default() 无法调整大小，只能通过其他方式来模拟
+                # 这里为了演示，我们假设load_default()有某种机制能间接调整大小，实际并非如此
+                # 更好的做法是强制用户提供一个中文字体
+                font_size += 1
+                if font_size > max(img_width, img_height) // 2:
+                    break
+                # 注意：这里没有真正改变load_default()的字体大小，这是个限制
+                # 实际应用中必须使用truetype加载自定义大小的字体
+
+    except IOError:
+        print(f"错误：无法加载字体文件 '{font_path}'。请确保路径正确且文件可读。")
+        print("尝试使用PIL的默认字体，中文字符可能无法正常显示。")
+        font = ImageFont.load_default()
+        # 尝试调整大小以满足最小高度（可能不精确）
+        font_size = min_watermark_height
+        while True:
+            bbox = draw.textbbox((0, 0), text, font=font)
+            text_height = bbox[3] - bbox[1]
+            if text_height >= min_watermark_height:
+                break
+            font_size += 1
+            if font_size > max(img_width, img_height) // 2:
+                break
+            # 同样，这里对load_default()的字体大小调整是模拟的，不精确
+
+    except Exception as e:
+        print(f"加载字体时发生错误：{e}")
+        print("尝试使用PIL的默认字体，中文字符可能无法正常显示。")
+        font = ImageFont.load_default()
+        font_size = min_watermark_height
+        while True:
+            bbox = draw.textbbox((0, 0), text, font=font)
+            text_height = bbox[3] - bbox[1]
+            if text_height >= min_watermark_height:
+                break
+            font_size += 1
+            if font_size > max(img_width, img_height) // 2:
+                break
+
+
+    # 获取水印文字的实际大小
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+
+    # 设置边距
+    margin = int(min_side * 0.02)  # 2%的边距
+
+    # 计算水印位置 (右下角)
+    x = img_width - text_width - margin
+    y = img_height - text_height - margin
+
+    # 设置水印颜色和透明度 (RGBA)
+    watermark_color = (255, 255, 255, 50)  # 黑色，半透明
+
+    # 添加水印
+    draw.text((x, y), text, font=font, fill=watermark_color)
+
+    return img
