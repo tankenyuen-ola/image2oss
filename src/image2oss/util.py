@@ -4,6 +4,7 @@ import numpy as np
 import requests
 import torch
 import os
+import tempfile
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 OSS_ENDPOINT_LIST = [
@@ -164,6 +165,34 @@ def get_object(object_key, access_key_id, access_key_secret, security_token, buc
             # 如果直接用 Image.open(object_stream.resp)，则Pillow会负责读取和关闭。
             # 鉴于我们先 read() 了全部数据，这里通常不需要额外关闭。
             pass
+
+def get_video_object(object_key, access_key_id, access_key_secret, security_token, bucket_name, endpoint):
+    try:
+        auth = oss2.StsAuth(access_key_id, access_key_secret, security_token, auth_version="v2")
+        bucket = oss2.Bucket(auth, endpoint, bucket_name)
+        object_stream = bucket.get_object(object_key)
+        video_data = object_stream.read()
+        
+        if not video_data:
+            raise ValueError(f"Failed to read data for object: {object_key}")
+        
+        _, ext = os.path.splitext(object_key)
+        if not ext:
+            ext = '.mp4'
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as temp_file:
+            temp_file.write(video_data)
+            temp_video_path = temp_file.name
+        
+        print(f"Successfully loaded video from OSS. Temporary file: {temp_video_path}")
+        return (temp_video_path,) # Return a tuple containing the path
+        
+    except oss2.exceptions.NoSuchKey:
+        print(f"Error: Object '{object_key}' not found in bucket '{bucket_name}'.")
+        raise
+    except Exception as e:
+        print(f"An error occurred while loading video from OSS: {e}")
+        raise
 
 # 获取阿里云ak信息
 def get_aliyun_ak(sts_service_url):

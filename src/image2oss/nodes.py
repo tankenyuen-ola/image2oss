@@ -1,4 +1,4 @@
-from .util import tensor_to_pil,read_image_from_url,put_object,get_aliyun_ak,OSS_ENDPOINT_LIST,get_object,put_object_for_cn_law
+from .util import tensor_to_pil,read_image_from_url,put_object,get_aliyun_ak,OSS_ENDPOINT_LIST,get_object,put_object_for_cn_law,get_video_object
 from comfy.cli_args import args
 import ast
 
@@ -141,7 +141,7 @@ class LoadImageFromOss:
                 "access_key_secret": ("STRING", {"default": "access_key_secret"}),
                 "security_token": ("STRING", {"default": ""}),
                 "bucket_name": ("STRING", {"default": "bucket_name"}),
-                "endpoint": (OSS_ENDPOINT_LIST,{"default": "oss-cn-hangzhou.aliyuncs.com"}),
+                "endpoint": ("STRING",{"default": "oss-ap-southeast-1.aliyuncs.com"}),
             }
         }
     RETURN_TYPES = ("IMAGE",)
@@ -149,6 +149,30 @@ class LoadImageFromOss:
     FUNCTION = "load_image"
     def load_image(self, filename, access_key_id, access_key_secret, security_token, bucket_name, endpoint):
         return get_object(filename, access_key_id, access_key_secret, security_token, bucket_name, endpoint)
+
+class LoadVideoFromOss:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "filename": ("STRING", {"default": "tmp/video.mp4"}),
+                "access_key_id": ("STRING", {"default": "access_key_id"}),
+                "access_key_secret": ("STRING", {"default": "access_key_secret"}),
+                "security_token": ("STRING", {"default": ""}),
+                "bucket_name": ("STRING", {"default": "bucket_name"}),
+                "endpoint": ("STRING", {"default": "oss-ap-southeast-1.aliyuncs.com"}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("video_path",)
+    CATEGORY = "API/oss"
+    FUNCTION = "load_video"
+
+    def load_video(self, filename, access_key_id, access_key_secret, security_token, bucket_name, endpoint):
+        # The get_video_object function already returns a tuple, which is what ComfyUI expects
+        # when a function has one output.
+        return get_video_object(filename, access_key_id, access_key_secret, security_token, bucket_name, endpoint)
 
 # 加载图片,,通过阿里云sdk,使用自建sts服务
 class LoadImageFromOssBySTSServiceUrl:
@@ -293,7 +317,8 @@ NODE_CLASS_MAPPINGS = {
     "OSSUploadNodeBySTSServiceUrlForCNLaw": OSSUploadNodeBySTSServiceUrlForCNLaw,
     "LoadImageFromURL": LoadImageFromURL,
     "LoadImageFromOss":LoadImageFromOss,
-    "LoadImageFromOssBySTSServiceUrl":LoadImageFromOssBySTSServiceUrl
+    "LoadImageFromOssBySTSServiceUrl":LoadImageFromOssBySTSServiceUrl,
+    "LoadVideoFromOss":LoadVideoFromOss
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -303,5 +328,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "OSSUploadNodeBySTSServiceUrlForCNLaw": "image2oss-tag-sts-service",
     "LoadImageFromOss":"oss2image",
     "LoadImageFromOssBySTSServiceUrl":"oss2image-sts-service",
-    "LoadImageFromURL":"url2image"
+    "LoadImageFromURL":"url2image",
+    "LoadVideoFromOss":"oss2vid"
 }
