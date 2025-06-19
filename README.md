@@ -1,5 +1,30 @@
 # comfyui_image2oss
 
+## 更新说明
+
+本分支基于原版本进行了以下改进：
+
+### 🆕 新增功能
+1. **oss2vid节点** - 新增从阿里云OSS获取视频文件的功能，支持直接下载视频文件到本地临时路径
+2. **endpoint参数优化** - oss2image和oss2vid节点的endpoint参数现在支持自定义输入，不再限制于预设列表，可以输入任意有效的OSS端点地址
+
+### 📋 节点对照表
+| 原版节点名 | 新版节点名 | 主要变更 |
+|-----------|-----------|----------|
+| oss2image | oss2image | endpoint参数改为可输入任意字符串 |
+| - | **oss2vid** | 🆕 新增视频下载功能 |
+
+**🔄 改进说明**: 在oss2image和oss2vid节点中，endpoint参数现在支持手动输入任意有效的OSS端点地址，不再局限于预设的下拉列表选项。这样可以支持更多地区和自定义端点配置。
+
+### 🎥 oss2vid节点说明
+新增的oss2vid节点用于从阿里云OSS下载视频文件：
+- **输入**: filename(视频文件路径)、access_key_id、access_key_secret、security_token、bucket_name、endpoint
+- **输出**: video_path(本地临时文件路径的字符串)
+- **支持格式**: 支持常见视频格式(mp4、avi、mov等)
+- **使用场景**: 可以将OSS中存储的视频文件下载到本地，供后续的视频处理节点使用
+
+---
+
 ## 功能
 ### 获取图片
 1. image2oss  保存图片到阿里云oss上,使用自建服务阿里云AK&SK&Token
@@ -9,7 +34,7 @@
 5. oss2image 从阿里云oss上获取图片,使用阿里云AK&SK(支持ststoken)
 6. oss2image-sts-service 从阿里云oss上获取图片,使用自建服务阿里云AK&SK&Token
 7. url2image 从url获取图片
-
+8. **oss2vid 从阿里云oss上获取视频文件,使用阿里云AK&SK(支持ststoken)** 🆕
 
 
 ## Quickstart
